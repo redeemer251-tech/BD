@@ -1,0 +1,7 @@
+path: C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset_final/   # or relative from project root
+train: images/train
+val: images/val
+test: images/test
+
+nc: 3                              # number of classes
+names: ['helicopter', 'airplane', 'uav']
