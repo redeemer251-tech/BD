@@ -1,13 +1,10 @@
 import os
 import xml.etree.ElementTree as ET
 
-# ── CONFIGURE THESE ──────────────────────────────────────────
-XML_DIR    = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/uav/combinedxml'   # folder containing your .xml files
-IMAGES_DIR = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/combined/images/val'            # folder containing your images
-OUTPUT_DIR = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/uav/combinedtxt'            # where YOLO .txt files will be saved
-CLASS_NAMES = ['uav']                    # your classes — order determines class ID
-#                                        # 'uav' → class ID 0
-# ─────────────────────────────────────────────────────────────
+XML_DIR    = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/uav/combinedxml'
+IMAGES_DIR = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/combined/images/val'
+OUTPUT_DIR = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/uav/combinedtxt'
+CLASS_NAMES = ['uav']
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -53,7 +50,6 @@ def parse_dut_custom(tree):
     """Parse DUT Anti-UAV custom XML format."""
     root = tree.getroot()
 
-    # Handle both <annotation><image ...> and <images><image ...> structures
     image_nodes = root.findall('.//image')
     results = []
 
@@ -83,7 +79,6 @@ def write_yolo_label(out_path, boxes, img_w, img_h):
     lines = []
     for (class_id, xmin, ymin, xmax, ymax) in boxes:
         xc, yc, w, h = convert_box_to_yolo(xmin, ymin, xmax, ymax, img_w, img_h)
-        # Clamp to [0, 1] in case of annotation edge cases
         xc = max(0.0, min(1.0, xc))
         yc = max(0.0, min(1.0, yc))
         w  = max(0.0, min(1.0, w))
@@ -92,8 +87,6 @@ def write_yolo_label(out_path, boxes, img_w, img_h):
     with open(out_path, 'w') as f:
         f.write('\n'.join(lines))
 
-# ── MAIN CONVERSION LOOP ──────────────────────────────────────
-# ── CORRECTED MAIN CONVERSION LOOP ────────────────────────────
 converted = 0
 skipped   = 0
 
@@ -105,25 +98,19 @@ for xml_file in sorted(os.listdir(XML_DIR)):
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
-    # Use the ACTUAL XML filename from the disk, not the one inside the tags
-    # This ensures "drone (1).xml" becomes "drone (1).txt"
     file_stem = os.path.splitext(xml_file)[0]
     out_path = os.path.join(OUTPUT_DIR, file_stem + '.txt')
 
-    # Auto-detect format
     is_pascal_voc = root.find('size') is not None
 
     if is_pascal_voc:
-        # We ignore 'filename' from parse_pascal_voc and use our disk-based 'file_stem'
         _, img_w, img_h, boxes = parse_pascal_voc(tree)
         write_yolo_label(out_path, boxes, img_w, img_h)
         converted += 1
 
     else:
-        # For DUT custom format (handles multiple records if necessary)
         records = parse_dut_custom(tree)
         for i, (internal_filename, img_w, img_h, boxes) in enumerate(records):
-            # If a single XML contains multiple images, we append an index
             if len(records) > 1:
                 current_out_path = os.path.join(OUTPUT_DIR, f"{file_stem}_{i}.txt")
             else:
@@ -167,7 +154,6 @@ def verify_conversion(images_dir, labels_dir, num_samples=5):
             cls_id = int(parts[0])
             xc, yc, bw, bh = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
 
-            # Convert back to pixel coords for drawing
             x1 = int((xc - bw/2) * w)
             y1 = int((yc - bh/2) * h)
             x2 = int((xc + bw/2) * w)

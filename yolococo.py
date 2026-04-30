@@ -1,11 +1,11 @@
-# convert_to_coco.py
+
 import os
 import json
 import cv2
 from pathlib import Path
 
 DATASET_DIR = r'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset_final'
-CLASS_NAMES = ['helicopter', 'airplane', 'uav']   # must match your data.yaml
+CLASS_NAMES = ['helicopter', 'airplane', 'uav']
 
 def yolo_to_coco(images_dir, labels_dir, output_json):
     images_dir = Path(images_dir)
@@ -47,7 +47,6 @@ def yolo_to_coco(images_dir, labels_dir, output_json):
                 cls_id    = int(parts[0])
                 xc, yc, bw, bh = map(float, parts[1:])
 
-                # Convert normalized YOLO → absolute COCO (x_min, y_min, w, h)
                 abs_w  = bw * w
                 abs_h  = bh * h
                 x_min  = (xc - bw / 2) * w
@@ -78,10 +77,9 @@ for split in ['train', 'val', 'test']:
         output_json=f'{DATASET_DIR}/annotations_{split}.json',
     )
 
-# Also generate COCO JSONs for weather conditions (same labels, augmented images)
 for cond in ['fog', 'rain', 'lowlight']:
     yolo_to_coco(
         images_dir=f'{DATASET_DIR}/images/test_{cond}',
-        labels_dir=f'{DATASET_DIR}/labels/test',   # same labels as clear test
+        labels_dir=f'{DATASET_DIR}/labels/test',
         output_json=f'{DATASET_DIR}/annotations_test_{cond}.json',
     )

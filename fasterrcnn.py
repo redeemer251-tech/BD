@@ -11,24 +11,21 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-# ── CONFIGURE ────────────────────────────────────────────────
 DATASET_DIR = r'C:\Users\Admin\Desktop\BAKAULARA DARBS\dataset_final'
 OUTPUT_DIR  = r'C:\Users\Admin\Desktop\BAKAULARA DARBS\runs\faster_rcnn'
 CLASS_NAMES = ['__background__', 'helicopter', 'airplane', 'uav']
-NUM_CLASSES = 4        # 3 + background
+NUM_CLASSES = 4
 BATCH_SIZE  = 8
 BASE_LR     = 0.005
-MAX_ITER    = 40000    # stop after this many batches
-TRAIN_DURATION = 2 * 3600 + 6 * 60   # 7560 seconds
+MAX_ITER    = 40000
+TRAIN_DURATION = 2 * 3600 + 6 * 60
 LR_STEPS    = (22000, 27000)
 CONF_THRES  = 0.25
-# ─────────────────────────────────────────────────────────────
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
-# ── DATASET ──────────────────────────────────────────────────
 class COCODataset(Dataset):
     def __init__(self, images_dir, annotations_json):
         self.images_dir = Path(images_dir)
@@ -70,7 +67,6 @@ class COCODataset(Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-# ── TRAINING WITH ITER-BASED STOPPING ────────────────────────
 def train(model, train_loader, optimizer, scheduler, duration_seconds):
     model.train()
     start_time  = time.time()
@@ -79,10 +75,10 @@ def train(model, train_loader, optimizer, scheduler, duration_seconds):
 
     print(f"Training for {duration_seconds/3600:.2f}h (batch size {BATCH_SIZE})...")
 
-    while (time.time() - start_time) < duration_seconds:  # ← time check
+    while (time.time() - start_time) < duration_seconds:
         epoch += 1
         for images, targets in train_loader:
-            if (time.time() - start_time) >= duration_seconds:  # ← inner check too
+            if (time.time() - start_time) >= duration_seconds:
                 break
 
             images  = [img.to(device) for img in images]
@@ -108,7 +104,6 @@ def train(model, train_loader, optimizer, scheduler, duration_seconds):
 
     return time.time() - start_time
 
-# ── EVALUATION ───────────────────────────────────────────────
 def evaluate(model, dataset_dir, split, conf_thres=0.25):
     """
     Returns precision, recall, F1 and mAP metrics for a given test split.
@@ -141,7 +136,7 @@ def evaluate(model, dataset_dir, split, conf_thres=0.25):
                 x1, y1, x2, y2 = box.tolist()
                 coco_preds.append({
                     'image_id':    img_id,
-                    'category_id': int(label.item()) - 1,  # remove background offset
+                    'category_id': int(label.item()) - 1,
                     'bbox':        [x1, y1, x2 - x1, y2 - y1],
                     'score':       float(score.item()),
                 })
@@ -151,7 +146,6 @@ def evaluate(model, dataset_dir, split, conf_thres=0.25):
         return {'precision': 0, 'recall': 0, 'f1': 0,
                 'mAP_50': 0, 'mAP_50_95': 0}
 
-    # ── COCO mAP ─────────────────────────────────────────────
     coco_dt   = coco_gt.loadRes(coco_preds)
     coco_eval = COCOeval(coco_gt, coco_dt, 'bbox')
     coco_eval.params.iouThrs = np.linspace(0.5, 0.95, 10)
@@ -159,11 +153,9 @@ def evaluate(model, dataset_dir, split, conf_thres=0.25):
     coco_eval.accumulate()
     coco_eval.summarize()
 
-    map_50    = float(coco_eval.stats[1])   # mAP@0.5
-    map_50_95 = float(coco_eval.stats[0])   # mAP@0.5:0.95
+    map_50    = float(coco_eval.stats[1])
+    map_50_95 = float(coco_eval.stats[0])
 
-    # ── Precision / Recall / F1 from TP FP FN ────────────────
-    # Match predictions to ground truth at IoU=0.5
     from torchvision.ops import box_iou
 
     gt_by_img  = {}
@@ -202,7 +194,7 @@ def evaluate(model, dataset_dir, split, conf_thres=0.25):
             best_iou, best_gi = iou_matrix[pi].max(0)
             best_gi = best_gi.item()
             if best_iou >= 0.5 and best_gi not in matched_gt:
-                if preds[pi][4] == gts[best_gi][4]:   # class must match
+                if preds[pi][4] == gts[best_gi][4]:
                     TP += 1
                     matched_gt.add(best_gi)
                     matched_pred.add(pi)
@@ -226,17 +218,14 @@ def evaluate(model, dataset_dir, split, conf_thres=0.25):
         'TP': TP, 'FP': FP, 'FN': FN,
     }
 
-# ── MAIN ─────────────────────────────────────────────────────
 if __name__ == '__main__':
     import pandas as pd
 
-    # Model
     model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, NUM_CLASSES)
     model.to(device)
 
-    # Data
     train_dataset = COCODataset(
         f'{DATASET_DIR}/images/train',
         f'{DATASET_DIR}/annotations_train.json',
@@ -246,26 +235,22 @@ if __name__ == '__main__':
         num_workers=4, collate_fn=collate_fn,
     )
 
-    # Optimizer + iter-based LR scheduler
     params    = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=BASE_LR,
                                 momentum=0.9, weight_decay=0.0005)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=list(LR_STEPS), gamma=0.1)
 
-    # Train
-    training_time = train(model, train_loader, optimizer, scheduler, TRAIN_DURATION)  # ← change MAX_ITER to TRAIN_DURATION
+    training_time = train(model, train_loader, optimizer, scheduler, TRAIN_DURATION)
     h = int(training_time // 3600)
     m = int((training_time % 3600) // 60)
     s = int(training_time % 60)
     print(f"\nTraining complete: {h}h {m}m {s}s")
 
-    # Save weights
     weights_path = os.path.join(OUTPUT_DIR, 'model_final.pth')
     torch.save(model.state_dict(), weights_path)
     print(f"Saved: {weights_path}")
 
-    # Evaluate on all conditions
     print("\nEvaluating on all test conditions...")
     conditions = ['test', 'test_fog', 'test_rain', 'test_lowlight']
     rows = []

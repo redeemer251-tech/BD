@@ -22,12 +22,11 @@ def add_low_light(img, gamma=0.35):
     noise = np.random.normal(0, 8, dark.shape).astype(np.int16)
     return np.clip(dark.astype(np.int16) + noise, 0, 255).astype(np.uint8)
 
-# Apply and save each condition
 src = 'dataset_final/images/test'
 augmentations = {'fog': add_fog, 'rain': add_rain, 'lowlight': add_low_light}
 
 for cond_name, fn in augmentations.items():
-    out_dir = f'dataset/images/test_{cond_name}'
+    out_dir = f'dataset_final/conditions/test_{cond_name}'
     os.makedirs(out_dir, exist_ok=True)
     for fname in os.listdir(src):
         img = cv2.imread(os.path.join(src, fname))

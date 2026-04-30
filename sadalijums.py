@@ -1,13 +1,9 @@
 import os, shutil, random
 
-# --- CONFIGURATION ---
-# The location of your raw data
 src_img_dir = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/combined/images/val/'
 src_lab_dir = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset/combined/labels/val/'
 
-# The specific place you want the split dataset to go
 base_dest = 'C:/Users/Admin/Desktop/BAKAULARA DARBS/dataset_final/'
-# ---------------------
 
 images = [f for f in os.listdir(src_img_dir) if f.lower().endswith('.jpg')]
 n = len(images)
@@ -35,7 +31,6 @@ else:
             shutil.copy(os.path.join(src_img_dir, f), os.path.join(img_dest, f))
             
             label = f.replace('.jpg', '.txt').replace('.JPG', '.txt')
-            # Check if label exists before copying to avoid crashing
             if os.path.exists(os.path.join(src_lab_dir, label)):
                 shutil.copy(os.path.join(src_lab_dir, label), os.path.join(lab_dest, label))
 

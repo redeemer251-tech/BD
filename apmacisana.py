@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('yolov8s.pt')   # Downloads pretrained weights automatically
+    model = YOLO('yolov8s.pt')
     results = model.train(
     data='dataset_final/data.yaml',
     epochs=100,
@@ -10,8 +10,8 @@ if __name__ == '__main__':
     lr0=0.01,
     momentum=0.937,
     weight_decay=0.0005,
-    patience=20,             # Early stopping: stops if no improvement for 20 epochs
+    patience=20,
     project='runs/train',
     name='bce_run',
-    seed=42                  # Fix seed for reproducibility
+    seed=42
 )

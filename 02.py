@@ -1,8 +1,7 @@
 import os
 import re
 
-# Set this to the folder containing your 5200 .txt files
-TARGET_DIR = r'C:\Users\Admin\Desktop\BAKAULARA DARBS\dataset\uav\val\txt'
+TARGET_DIR = r'C:\Users\Admin\Desktop\BAKAULARA DARBS\dataset\uav\combinedtxt'
 
 def fix_class_id(directory):
     count = 0
@@ -13,8 +12,6 @@ def fix_class_id(directory):
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # re.sub with count=1 replaces only the first occurrence found
-            # This turns the first '0' (Class 0) into '2' (Class 2)
             new_content = re.sub(r'0', '2', content, count=1)
 
             with open(file_path, 'w') as f:
